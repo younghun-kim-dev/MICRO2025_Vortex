@@ -17,32 +17,32 @@ module VX_schedule import VX_gpu_pkg::*; #(
     parameter `STRING INSTANCE_ID = "",
     parameter CORE_ID = 0
 ) (
-    input wire              clk,
-    input wire              reset,
+    input wire           clk,
+    input wire           reset,
 
 `ifdef PERF_ENABLE
-    output sched_perf_t     sched_perf,
+    output sched_perf_t  sched_perf,
 `endif
 
     // configuration
-    input base_dcrs_t       base_dcrs,
+    input base_dcrs_t    base_dcrs,
 
     // inputsdecode_if
-    VX_warp_ctl_if.slave    warp_ctl_if,
-    VX_branch_ctl_if.slave  branch_ctl_if [`NUM_ALU_BLOCKS],
+    VX_warp_ctl_if.slave   warp_ctl_if,
+    VX_branch_ctl_if.slave branch_ctl_if [`NUM_ALU_BLOCKS],
     VX_decode_sched_if.slave decode_sched_if,
     VX_issue_sched_if.slave issue_sched_if[`ISSUE_WIDTH],
     VX_commit_sched_if.slave commit_sched_if,
 
     // outputs
-    VX_schedule_if.master   schedule_if,
+    VX_schedule_if.master  schedule_if,
 `ifdef GBAR_ENABLE
-    VX_gbar_bus_if.master   gbar_bus_if,
+    VX_gbar_bus_if.master  gbar_bus_if,
 `endif
-    VX_sched_csr_if.master  sched_csr_if,
+    VX_sched_csr_if.master sched_csr_if,
 
     // status
-    output wire             busy
+    output wire          busy
 );
     `UNUSED_SPARAM (INSTANCE_ID)
     `UNUSED_PARAM (CORE_ID)
@@ -73,9 +73,9 @@ module VX_schedule import VX_gpu_pkg::*; #(
     wire schedule_if_fire = schedule_if.valid && schedule_if.ready;
 
     // branch
-    wire [`NUM_ALU_BLOCKS-1:0]               branch_valid;
+    wire [`NUM_ALU_BLOCKS-1:0]              branch_valid;
     wire [`NUM_ALU_BLOCKS-1:0][NW_WIDTH-1:0] branch_wid;
-    wire [`NUM_ALU_BLOCKS-1:0]               branch_taken;
+    wire [`NUM_ALU_BLOCKS-1:0]              branch_taken;
     wire [`NUM_ALU_BLOCKS-1:0][PC_BITS-1:0]  branch_dest;
     for (genvar i = 0; i < `NUM_ALU_BLOCKS; ++i) begin : g_branch_init
         assign branch_valid[i] = branch_ctl_if[i].valid;
@@ -368,7 +368,7 @@ module VX_schedule import VX_gpu_pkg::*; #(
         localparam wis = wid_to_wis(i);
 
         VX_pending_size #(
-            .SIZE      (4096),
+            .SIZE     (4096),
             .ALM_EMPTY (1)
         ) counter (
             .clk       (clk),
@@ -417,22 +417,32 @@ module VX_schedule import VX_gpu_pkg::*; #(
 `ifdef PERF_ENABLE
     reg [PERF_CTR_BITS-1:0] perf_sched_idles;
     reg [PERF_CTR_BITS-1:0] perf_sched_stalls;
+    reg [PERF_CTR_BITS-1:0] perf_total_issued_warps;
+    reg [PERF_CTR_BITS-1:0] perf_total_active_threads;
 
     wire schedule_idle = ~schedule_valid;
     wire schedule_stall = schedule_if.valid && ~schedule_if.ready;
 
     always @(posedge clk) begin
         if (reset) begin
-            perf_sched_idles  <= '0;
-            perf_sched_stalls <= '0;
+            perf_sched_idles          <= '0;
+            perf_sched_stalls         <= '0;
+            perf_total_issued_warps   <= '0;
+            perf_total_active_threads <= '0;
         end else begin
             perf_sched_idles  <= perf_sched_idles + PERF_CTR_BITS'(schedule_idle);
             perf_sched_stalls <= perf_sched_stalls + PERF_CTR_BITS'(schedule_stall);
+            if (schedule_if_fire) begin
+                perf_total_issued_warps   <= perf_total_issued_warps + 1;
+                perf_total_active_threads <= perf_total_active_threads + $countones(schedule_if.data.tmask);
+            end
         end
     end
 
     assign sched_perf.idles = perf_sched_idles;
     assign sched_perf.stalls = perf_sched_stalls;
+    assign sched_perf.total_issued_warps = perf_total_issued_warps;
+    assign sched_perf.total_active_threads = perf_total_active_threads;
 `endif
 
 `ifdef DBG_TRACE_PIPELINE
