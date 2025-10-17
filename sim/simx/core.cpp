@@ -221,6 +221,10 @@ void Core::schedule() {
     return;
   }
 
+  // track active threads
+  perf_stats_.total_issued_warps += 1;
+  perf_stats_.total_active_threads += trace->tmask.count();
+
   // suspend warp until decode
   emulator_.suspend(trace->wid);
 

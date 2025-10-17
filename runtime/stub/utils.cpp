@@ -214,6 +214,9 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
   uint64_t mem_writes = 0;
   uint64_t mem_lat = 0;
   uint64_t mem_bank_stalls = 0;
+  // PERF: CLASS_3
+  uint64_t total_issued_warps = 0;
+  uint64_t total_active_threads = 0;
 
   uint64_t num_cores;
   CHECK_ERR(vx_dev_caps(hdevice, VX_CAPS_NUM_CORES, &num_cores), {
@@ -588,6 +591,38 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
         });
       }
     } break;
+    case VX_DCR_MPM_CLASS_3:
+    {
+      uint64_t threads_per_warp;
+      CHECK_ERR(vx_dev_caps(hdevice, VX_CAPS_NUM_THREADS, &threads_per_warp), {
+        return err;
+      });
+      // Retrieve total_issued_warps and total_active_threads for each core
+
+      // Query total_issued_warps for the core
+      uint64_t total_issued_warps_per_core;
+      CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_TOTAL_ISSUED_WARPS, core_id, &total_issued_warps_per_core), {
+        return err;
+      });
+
+      // Query total_active_threads for the core
+      uint64_t total_active_threads_per_core;
+      CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_TOTAL_ACTIVE_THREADS, core_id, &total_active_threads_per_core), {
+        return err;
+      });
+
+      // Print total_issued_warps and total_active_threads
+      if (num_cores > 1) {
+        // Calculate and print warp efficiency
+        int warp_efficiency = calcAvgPercent(total_active_threads_per_core, total_issued_warps_per_core * threads_per_warp);
+        fprintf(stream, "PERF: core%d: Warp Efficiency=%d%%\n", core_id, warp_efficiency);
+      }
+
+      // Accumulate totals for all cores
+      total_issued_warps += total_issued_warps_per_core;
+      total_active_threads += total_active_threads_per_core;
+    }
+    break;
     default:
       break;
     }
@@ -679,6 +714,15 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
       fprintf(stream, "PERF: memory bank stalls=%ld (utilization=%d%%)\n", mem_bank_stalls, mem_bank_utilization);
     }
   } break;
+  case VX_DCR_MPM_CLASS_3: {
+    uint64_t threads_per_warp;
+    CHECK_ERR(vx_dev_caps(hdevice, VX_CAPS_NUM_THREADS, &threads_per_warp), {
+      return err;
+    });
+    // Calculate and print warp efficiency
+    int warp_efficiency = calcAvgPercent(total_active_threads, total_issued_warps * threads_per_warp);
+    fprintf(stream, "PERF: Warp Efficiency=%d%%\n", warp_efficiency);
+  } break;
   default:
     break;
   }
@@ -692,7 +736,7 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
 }
 
 int vx_check_occupancy(vx_device_h hdevice, uint32_t group_size, uint32_t* max_localmem) {
-   // check group size
+    // check group size
   uint64_t warps_per_core, threads_per_warp;
   CHECK_ERR(vx_dev_caps(hdevice, VX_CAPS_NUM_WARPS, &warps_per_core), {
     return err;

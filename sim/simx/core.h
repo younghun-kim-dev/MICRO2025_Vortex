@@ -70,6 +70,10 @@ public:
     uint64_t ifetch_latency;
     uint64_t load_latency;
 
+    // [ADD: warp-efficiency] custom MPM class-3 counters
+    uint64_t total_issued_warps;     // 누적 발행된 warp 수
+    uint64_t total_active_threads;   // 누적 활성 스레드 수 (tmask.count() 합)
+
     PerfStats()
       : cycles(0)
       , instrs(0)
@@ -96,6 +100,9 @@ public:
       , stores(0)
       , ifetch_latency(0)
       , load_latency(0)
+      // [ADD: warp-efficiency] init
+      , total_issued_warps(0)
+      , total_active_threads(0)
     {}
   };
 
@@ -235,3 +242,4 @@ private:
 };
 
 } // namespace vortex
+

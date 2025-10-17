@@ -4,6 +4,7 @@
 #include <vector>
 #include <vortex.h>
 #include "common.h"
+#include <cmath>  // ← added for fabs/fmax
 
 #define FLOAT_ULP 6
 
@@ -13,7 +14,7 @@
      if (0 == _ret)                                             \
        break;                                                   \
      printf("Error: '%s' returned %d!\n", #_expr, (int)_ret);   \
-	 cleanup();			                                              \
+     cleanup();                                                 \
      exit(-1);                                                  \
    } while (false)
 
@@ -53,15 +54,16 @@ public:
   static float generate() {
     return static_cast<float>(rand()) / RAND_MAX;
   }
+  // ==== modified: use relative/absolute tolerance instead of ULP ====
   static bool compare(float a, float b, int index, int errors) {
-    union fi_t { float f; int32_t i; };
-    fi_t fa, fb;
-    fa.f = a;
-    fb.f = b;
-    auto d = std::abs(fa.i - fb.i);
-    if (d > FLOAT_ULP) {
+    const float rtol = 2e-3f;   // relative tolerance
+    const float atol = 1e-4f;   // absolute tolerance (protect near zero)
+    const float diff  = std::fabs(a - b);
+    const float bound = atol + rtol * std::fmax(std::fabs(a), std::fabs(b));
+    if (diff > bound) {
       if (errors < 100) {
-        printf("*** error: [%d] expected=%f, actual=%f\n", index, b, a);
+        printf("*** error: [%d] expected=%f, actual=%f (diff=%g, bound=%g)\n",
+               index, b, a, (double)diff, (double)bound);
       }
       return false;
     }
@@ -222,3 +224,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+

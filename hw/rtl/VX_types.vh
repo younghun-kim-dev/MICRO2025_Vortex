@@ -35,6 +35,7 @@
 `define VX_DCR_MPM_CLASS_NONE           0
 `define VX_DCR_MPM_CLASS_CORE           1
 `define VX_DCR_MPM_CLASS_MEM            2
+`define VX_DCR_MPM_CLASS_3              3   // [ADD: class 3] custom counters (warp efficiency)
 
 // User Floating-Point CSRs ///////////////////////////////////////////////////
 
@@ -185,6 +186,13 @@
 
 // <Add your own counters: use addresses hB03..B1F, hB83..hB9F>
 
+// Machine Performance-monitoring custom counters (class 3) ///////////////////
+// [ADD: class 3] Warp Efficiency counters
+`define VX_CSR_MPM_TOTAL_ISSUED_WARPS     12'hB03
+`define VX_CSR_MPM_TOTAL_ISSUED_WARPS_H   12'hB83
+`define VX_CSR_MPM_TOTAL_ACTIVE_THREADS   12'hB04
+`define VX_CSR_MPM_TOTAL_ACTIVE_THREADS_H 12'hB84
+
 // Machine Information Registers //////////////////////////////////////////////
 
 `define VX_CSR_MVENDORID                12'hF11
@@ -216,3 +224,4 @@
 `define VX_CSR_LOCAL_MEM_BASE           12'hFC3
 
 `endif // VX_TYPES_VH
+
