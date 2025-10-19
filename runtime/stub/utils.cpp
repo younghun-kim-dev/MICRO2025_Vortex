@@ -508,6 +508,23 @@ extern int vx_dump_perf(vx_device_h hdevice, FILE* stream) {
         fprintf(stream, "PERF: core%d: dcache write misses=%ld (hit ratio=%d%%)\n", core_id, dcache_write_misses, dcache_write_hit_ratio);
         fprintf(stream, "PERF: core%d: dcache bank stalls=%ld (utilization=%d%%)\n", core_id, dcache_bank_stalls, dcache_bank_utilization);
         fprintf(stream, "PERF: core%d: dcache mshr stalls=%ld (utilization=%d%%)\n", core_id, dcache_mshr_stalls, mshr_utilization);
+
+        // PERF: Prefetch counters
+        uint64_t prefetch_requests;
+        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_REQ, core_id, &prefetch_requests), {
+          return err;
+        });
+        uint64_t prefetch_unused;
+        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_UNUSED, core_id, &prefetch_unused), {
+          return err;
+        });
+        uint64_t prefetch_late;
+        CHECK_ERR(vx_mpm_query(hdevice, VX_CSR_MPM_PREFETCH_LATE, core_id, &prefetch_late), {
+          return err;
+        });
+        fprintf(stream, "PERF: core%d: dcache prefetch requests=%lu\n", core_id, prefetch_requests);
+        fprintf(stream, "PERF: core%d: dcache prefetch unused=%lu\n", core_id, prefetch_unused);
+        fprintf(stream, "PERF: core%d: dcache prefetch late=%lu\n", core_id, prefetch_late);
       }
 
       // PERF: coalescer
@@ -721,3 +738,4 @@ int vx_check_occupancy(vx_device_h hdevice, uint32_t group_size, uint32_t* max_l
 
   return 0;
 }
+

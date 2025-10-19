@@ -306,7 +306,7 @@ enum class LsuType {
   LOAD,
   STORE,
   FENCE,
-  PREFETCH,
+  PREFETCH  // ADD
 };
 
 struct IntrLsuArgs {
@@ -317,10 +317,10 @@ struct IntrLsuArgs {
 
 inline std::ostream &operator<<(std::ostream &os, const LsuType& type) {
   switch (type) {
-  case LsuType::LOAD:   os << "LOAD"; break;
-  case LsuType::STORE:  os << "STORE"; break;
-  case LsuType::FENCE:  os << "FENCE"; break;
-  case LsuType::PREFETCH: os << "PREFETCH"; break;
+  case LsuType::LOAD:     os << "LOAD"; break;
+  case LsuType::STORE:    os << "STORE"; break;
+  case LsuType::FENCE:    os << "FENCE"; break;
+  case LsuType::PREFETCH: os << "PREFETCH"; break;  // ADD
   default:
     assert(false);
   }
@@ -783,7 +783,7 @@ public:
   }
 
   void reset() override {
-    //--
+    //-- 
   }
 private:
   uint32_t size_;
@@ -911,6 +911,7 @@ struct LsuReq {
   uint32_t tag;
   uint32_t cid;
   uint64_t uuid;
+  bool     is_prefetch;  // ADD
 
   LsuReq(uint32_t size)
     : mask(size)
@@ -919,6 +920,7 @@ struct LsuReq {
     , tag(0)
     , cid(0)
     , uuid(0)
+    , is_prefetch(false)  // ADD
   {}
 
   friend std::ostream &operator<<(std::ostream &os, const LsuReq& req) {
@@ -934,6 +936,7 @@ struct LsuReq {
       }
     }
     os << "}, tag=0x" << std::hex << req.tag << std::dec << ", cid=" << req.cid;
+    if (req.is_prefetch) os << ", prefetch=1";  // ADD
     os << " (#" << req.uuid << ")";
     return os;
   }
@@ -970,25 +973,29 @@ struct MemReq {
   uint32_t tag;
   uint32_t cid;
   uint64_t uuid;
+  bool     is_prefetch;  // ADD
 
   MemReq(uint64_t _addr = 0,
           bool _write = false,
           AddrType _type = AddrType::Global,
           uint64_t _tag = 0,
           uint32_t _cid = 0,
-          uint64_t _uuid = 0
+          uint64_t _uuid = 0,
+          bool _is_prefetch = false  // ADD
   ) : addr(_addr)
     , write(_write)
     , type(_type)
     , tag(_tag)
     , cid(_cid)
     , uuid(_uuid)
+    , is_prefetch(_is_prefetch)  // ADD
   {}
 
   friend std::ostream &operator<<(std::ostream &os, const MemReq& req) {
     os << "rw=" << req.write << ", ";
     os << "addr=0x" << std::hex << req.addr << std::dec << ", type=" << req.type;
     os << ", tag=0x" << std::hex << req.tag << std::dec << ", cid=" << req.cid;
+    if (req.is_prefetch) os << ", prefetch=1";  // ADD
     os << " (#" << req.uuid << ")";
     return os;
   }
@@ -1102,11 +1109,11 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
-    //--
+    //-- 
   }
 
   bool empty() const {
@@ -1300,7 +1307,7 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
@@ -1416,7 +1423,7 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
@@ -1627,3 +1634,4 @@ using MemArbiter  = TxRxArbiter<MemReq, MemRsp>;
 using MemCrossBar = TxRxCrossBar<MemReq, MemRsp>;
 
 }
+

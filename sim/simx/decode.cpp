@@ -1140,3 +1140,4 @@ void Emulator::decode(uint32_t code, uint32_t wid, uint64_t uuid) {
     std::abort();
   }
 }
+

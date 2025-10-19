@@ -1,7 +1,7 @@
 // Copyright © 2019-2023
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
+// You may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
 //
@@ -55,6 +55,7 @@ void LocalMemSwitch::tick() {
     out_dc_req.tag   = in_req.tag;
     out_dc_req.cid   = in_req.cid;
     out_dc_req.uuid  = in_req.uuid;
+    out_dc_req.is_prefetch = in_req.is_prefetch; // ADD
 
     LsuReq out_lmem_req(out_dc_req);
 
@@ -147,6 +148,7 @@ void LsuMemAdapter::tick() {
         MemReq out_req;
         out_req.write = in_req.write;
         out_req.addr  = in_req.addrs.at(i);
+        out_req.is_prefetch = in_req.is_prefetch; // ADD
         out_req.type  = get_addr_type(in_req.addrs.at(i));
         out_req.tag   = in_req.tag;
         out_req.cid   = in_req.cid;
@@ -159,3 +161,4 @@ void LsuMemAdapter::tick() {
     ReqIn.pop();
   }
 }
+

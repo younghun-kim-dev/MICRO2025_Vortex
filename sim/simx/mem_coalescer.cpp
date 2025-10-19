@@ -71,11 +71,11 @@ void MemCoalescer::tick() {
 
     // track remaining responses
     assert(!entry.mask.none());
-		entry.mask &= ~rsp_mask;
-		if (entry.mask.none()) {
+    entry.mask &= ~rsp_mask;
+    if (entry.mask.none()) {
       // whole response received, release tag
-			pending_rd_reqs_.release(out_rsp.tag);
-		}
+      pending_rd_reqs_.release(out_rsp.tag);
+    }
     RspOut.pop();
   }
 
@@ -142,6 +142,7 @@ void MemCoalescer::tick() {
   out_req.addrs = out_addrs;
   out_req.cid = in_req.cid;
   out_req.uuid = in_req.uuid;
+  out_req.is_prefetch = in_req.is_prefetch; // ADD
 
   // send memory request
   ReqOut.push(out_req, delay_);
@@ -161,3 +162,4 @@ void MemCoalescer::tick() {
 const MemCoalescer::PerfStats& MemCoalescer::perf_stats() const {
   return perf_stats_;
 }
+

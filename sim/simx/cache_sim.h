@@ -1,7 +1,8 @@
+// sim/simx/cache_sim.h
 // Copyright © 2019-2023
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
+// You may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
 //
@@ -46,6 +47,11 @@ public:
 		uint64_t mshr_stalls;
 		uint64_t mem_latency;
 
+		// ADD: Prefetch counters
+		uint64_t prefetch_requests;
+		uint64_t prefetch_unused;
+		uint64_t prefetch_late;
+
 		PerfStats()
 			: reads(0)
 			, writes(0)
@@ -55,6 +61,9 @@ public:
 			, bank_stalls(0)
 			, mshr_stalls(0)
 			, mem_latency(0)
+			, prefetch_requests(0)   // ADD
+			, prefetch_unused(0)     // ADD
+			, prefetch_late(0)       // ADD
 		{}
 
 		PerfStats& operator+=(const PerfStats& rhs) {
@@ -66,6 +75,10 @@ public:
 			this->bank_stalls += rhs.bank_stalls;
 			this->mshr_stalls += rhs.mshr_stalls;
 			this->mem_latency += rhs.mem_latency;
+			// ADD
+			this->prefetch_requests += rhs.prefetch_requests;
+			this->prefetch_unused   += rhs.prefetch_unused;
+			this->prefetch_late     += rhs.prefetch_late;
 			return *this;
 		}
 	};
@@ -90,3 +103,4 @@ private:
 };
 
 }
+

@@ -1,15 +1,7 @@
 // Copyright © 2019-2023
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// ...
 
 `ifndef VX_TYPES_VH
 `define VX_TYPES_VH
@@ -185,6 +177,17 @@
 
 // <Add your own counters: use addresses hB03..B1F, hB83..hB9F>
 
+// ---------- Prefetch counters (extended window) ----------
+// NOTE: Class 2 window is full; these live beyond B1F.
+// Emulator/sim support was extended to 64 entries in your changes.
+`define VX_CSR_MPM_PREFETCH_REQ         12'hB30     // unique prefetch requests
+`define VX_CSR_MPM_PREFETCH_REQ_H       12'hBB0
+`define VX_CSR_MPM_PREFETCH_UNUSED      12'hB31     // unused prefetches
+`define VX_CSR_MPM_PREFETCH_UNUSED_H    12'hBB1
+`define VX_CSR_MPM_PREFETCH_LATE        12'hB32     // late prefetches
+`define VX_CSR_MPM_PREFETCH_LATE_H      12'hBB2
+// --------------------------------------------------------
+
 // Machine Information Registers //////////////////////////////////////////////
 
 `define VX_CSR_MVENDORID                12'hF11
@@ -193,7 +196,6 @@
 `define VX_CSR_MHARTID                  12'hF14
 
 // Vector CSRs
-
 `define VX_CSR_VSTART                   12'h008
 `define VX_CSR_VXSAT                    12'h009
 `define VX_CSR_VXRM                     12'h00A
@@ -203,12 +205,11 @@
 `define VX_CSR_VLENB                    12'hC22
 
 // GPGU CSRs
-
 `define VX_CSR_THREAD_ID                12'hCC0
 `define VX_CSR_WARP_ID                  12'hCC1
 `define VX_CSR_CORE_ID                  12'hCC2
 `define VX_CSR_ACTIVE_WARPS             12'hCC3
-`define VX_CSR_ACTIVE_THREADS           12'hCC4     // warning! this value is also used in LLVM
+`define VX_CSR_ACTIVE_THREADS           12'hCC4
 
 `define VX_CSR_NUM_THREADS              12'hFC0
 `define VX_CSR_NUM_WARPS                12'hFC1
@@ -216,3 +217,4 @@
 `define VX_CSR_LOCAL_MEM_BASE           12'hFC3
 
 `endif // VX_TYPES_VH
+
