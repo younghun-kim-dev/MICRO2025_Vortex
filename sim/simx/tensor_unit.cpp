@@ -1,4 +1,3 @@
-
 // Copyright © 2019-2023
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,6 +82,21 @@ struct FMA<vt::bf16, vt::bf16> {
   }
 };
 
+// === TF32 -> FP32 specialization ===
+// Convert TF32 to IEEE FP32 by masking off the lower 13 mantissa bits,
+// then use the softfloat helpers for mul/add.
+template <>
+struct FMA<vt::tf32, vt::fp32> {
+  static float eval(uint32_t a, uint32_t b, float c) {
+    auto xa = (a & 0xFFFFE000u); // TF32 -> FP32 bits
+    auto xb = (b & 0xFFFFE000u); // TF32 -> FP32 bits
+    auto xab = rv_fmul_s(xa, xb, 0, nullptr);
+    auto xc  = bit_cast<uint32_t>(c);
+    auto xd  = rv_fadd_s(xab, xc, 0, nullptr);
+    return bit_cast<float>(xd);
+  }
+};
+
 template <typename It, typename Ot>
 struct FEDP {
   using itype = typename It::dtype;
@@ -152,6 +166,8 @@ static PFN_FEDP select_FEDP(uint32_t IT, uint32_t OT) {
       return FEDP<vt::fp16, vt::fp32>::eval;
     case vt::bf16::id:
       return FEDP<vt::bf16, vt::fp32>::eval;
+    case vt::tf32::id:
+      return FEDP<vt::tf32, vt::fp32>::eval;
     default:
       std::cout << "Error: unsupported mma format: " << IT << " -> " << OT << "!" << std::endl;
       std::abort();
@@ -304,10 +320,10 @@ op_string_t vortex::op_string(TcuType tcu_type, IntrTcuArgs args) {
 ///////////////////////////////////////////////////////////////////////////////
 
 TensorUnit::TensorUnit(const SimContext &ctx, const char* name, const Arch& arch, Core* core)
-	: SimObject<TensorUnit>(ctx, name)
-	, Inputs(ISSUE_WIDTH, this)
-	, Outputs(ISSUE_WIDTH, this)
-	, impl_(new Impl(this, arch, core))
+        : SimObject<TensorUnit>(ctx, name)
+        , Inputs(ISSUE_WIDTH, this)
+        , Outputs(ISSUE_WIDTH, this)
+        , impl_(new Impl(this, arch, core))
 {}
 
 TensorUnit::~TensorUnit() {
@@ -323,7 +339,7 @@ void TensorUnit::tick() {
 }
 
 const TensorUnit::PerfStats &TensorUnit::perf_stats() const {
-	return impl_->perf_stats();
+        return impl_->perf_stats();
 }
 
 void TensorUnit::wmma(uint32_t wid,
@@ -338,3 +354,4 @@ void TensorUnit::wmma(uint32_t wid,
                       ExeTraceData* trace_data) {
   impl_->wmma(wid, fmt_s, fmt_d, step_m, step_n, rs1_data, rs2_data, rs3_data, rd_data, trace_data);
 }
+

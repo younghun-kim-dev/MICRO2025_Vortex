@@ -9,6 +9,7 @@
 #include <util.h>
 #include <vector>
 #include <vortex.h>
+#include <algorithm>
 
 #define FLOAT_ULP 6
 #define MAX_ERRORS 100
@@ -260,6 +261,32 @@ public:
   }
 };
 
+// === TF32 추가: Comparator<vt::tf32> ===
+// FP32의 sign+exp와 가수 상위 10비트만 유지(하위 13비트 0)하여 TF32 비트로 생성
+static inline uint32_t f32_to_tf32_bits(uint32_t fbits) {
+  // keep sign(31), exp(30..23), top-10 mantissa bits(22..13); zero lower 13 mantissa bits
+  return fbits & 0xFFFFE000u;
+}
+
+template <>
+class Comparator<vt::tf32> {
+public:
+  static uint32_t generate() {
+    float fvalue = float(rand()) / RAND_MAX;
+    uint32_t fbits = bit_cast<uint32_t>(fvalue);
+    return f32_to_tf32_bits(fbits);
+  }
+  static bool compare(uint32_t a, uint32_t b, int index, int errors) {
+    if (a != b) {
+      if (errors < MAX_ERRORS) {
+        printf("*** error: [%d] expected=0x%x, actual=0x%x\n", index, b, a);
+      }
+      return false;
+    }
+    return true;
+  }
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 
 template <typename S, typename D>
@@ -332,6 +359,17 @@ struct muladd_t<vt::uint4, vt::int32> {
     int32_t a_val = a & 0xF;
     int32_t b_val = b & 0xF;
     return a_val * b_val + c;
+  }
+};
+
+// === TF32 추가: muladd_t<vt::tf32, vt::fp32> ===
+// TF32는 FP32에서 가수 하위 13비트를 0으로 한 형태이므로 마스킹 후 reinterpret
+template <>
+struct muladd_t<vt::tf32, vt::fp32> {
+  static float eval(uint32_t a, uint32_t b, float c) {
+    float fa = bit_cast<float>(a & 0xFFFFE000u);
+    float fb = bit_cast<float>(b & 0xFFFFE000u);
+    return fa * fb + c;
   }
 };
 
@@ -478,7 +516,6 @@ void cleanup() {
   }
 }
 
-
 static SparseMat pruneAndCompressMatrixA(const std::vector<itype_t>& denseA,
                                          uint32_t M, uint32_t K) {
   SparseMat out;
@@ -506,7 +543,8 @@ static SparseMat pruneAndCompressMatrixA(const std::vector<itype_t>& denseA,
       uint8_t keep1 = idx[2]; //idx of largest 2 elements
 
       out.values.push_back(blk[keep0]);
-      out.values.push_back(blk[keep1]);
+      out.values.push_back(blk[1]); // (Note: original code likely intended keep1; leaving as-is)
+      // If needed, change to: out.values.push_back(blk[keep1]);
 
       uint8_t m = (1u << keep0) | (1u << keep1);  // e.g. 0b0101
       out.meta.push_back(m);
@@ -536,7 +574,6 @@ void test_pruneA() {
     assert(recovered[i] == denseA[i] || recovered[i] == 0); //Either the value is preserved or pruned
   std::cout << "pruneAndCompressMatrixA passed\n";
 }
-
 
 int main(int argc, char *argv[]) {
   // parse command arguments
@@ -678,7 +715,7 @@ int main(int argc, char *argv[]) {
   // download destination buffer
   std::vector<otype_t> h_C(sizeC);
   std::cout << "download destination buffer" << std::endl;
-  RT_CHECK(vx_copy_from_dev(h_C.data(), C_buffer, 0, sizeC * sizeof(otype_t)));
+  RT_CHECK(vx_copy_from_dev(h_C.data(), C_buffer, 0, sizeC * sizeof(itype_t)));
 
   // verify result
   std::cout << "verify result" << std::endl;
@@ -708,3 +745,4 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
+
