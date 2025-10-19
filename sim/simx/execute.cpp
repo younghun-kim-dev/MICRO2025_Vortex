@@ -723,6 +723,25 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           }
         }
       } break;
+      case LsuType::PREFETCH: { // NEW: software prefetch
+        auto trace_data = std::make_shared<LsuTraceData>(num_threads);
+        trace->data = trace_data;
+
+        for (uint32_t t = thread_start; t < num_threads; ++t) {
+          if (!warp.tmask.test(t))
+            continue;
+          uint64_t prefetch_addr = rs1_data[t].u;
+
+          // Record the prefetch address in trace
+          trace_data->mem_addrs.at(t) = {prefetch_addr, 4}; // 4 bytes (or cache line size if desired)
+
+          // Issue dummy read to populate cache
+          uint32_t dummy = 0;
+          this->dcache_read(&dummy, prefetch_addr, sizeof(uint32_t));
+
+          DP(2, "PREFETCH: addr=0x" << std::hex << prefetch_addr << std::dec << " (thread " << t << ")");
+        }
+      } break;
       case LsuType::FENCE: {
         // no compute
       } break;
@@ -1276,7 +1295,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
             continue;
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
-          this->set_csr(csr_addr, src_data, t, wid);
+          this->set_csr(csr_addr, src_data, wid, t);
           rd_data[t].i = csr_value;
         }
       } break;
@@ -1287,7 +1306,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
           if (src_data != 0) {
-            this->set_csr(csr_addr, csr_value | src_data, t, wid);
+            this->set_csr(csr_addr, csr_value | src_data, wid, t);
           }
           rd_data[t].i = csr_value;
         }
@@ -1299,7 +1318,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
           if (src_data != 0) {
-            this->set_csr(csr_addr, csr_value & ~src_data, t, wid);
+            this->set_csr(csr_addr, csr_value & ~src_data, wid, t);
           }
           rd_data[t].i = csr_value;
         }

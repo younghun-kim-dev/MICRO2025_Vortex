@@ -305,7 +305,8 @@ inline std::ostream &operator<<(std::ostream &os, const MdvType& type) {
 enum class LsuType {
   LOAD,
   STORE,
-  FENCE
+  FENCE,
+  PREFETCH,
 };
 
 struct IntrLsuArgs {
@@ -319,6 +320,7 @@ inline std::ostream &operator<<(std::ostream &os, const LsuType& type) {
   case LsuType::LOAD:   os << "LOAD"; break;
   case LsuType::STORE:  os << "STORE"; break;
   case LsuType::FENCE:  os << "FENCE"; break;
+  case LsuType::PREFETCH: os << "PREFETCH"; break;
   default:
     assert(false);
   }
