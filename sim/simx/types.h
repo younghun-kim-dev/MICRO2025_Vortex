@@ -169,7 +169,8 @@ enum class AluType {
   AND,
   OR,
   XOR,
-  CZERO
+  CZERO,
+  DOT8   // <-- NEW
 };
 
 struct IntrAluArgs {
@@ -193,6 +194,7 @@ inline std::ostream &operator<<(std::ostream &os, const AluType& type) {
   case AluType::OR:      os << "OR"; break;
   case AluType::XOR:     os << "XOR"; break;
   case AluType::CZERO:   os << "CZERO"; break;
+  case AluType::DOT8:    os << "DOT8"; break;   // <-- NEW
   default:
     assert(false);
   }
@@ -781,7 +783,7 @@ public:
   }
 
   void reset() override {
-    //--
+    //-- 
   }
 private:
   uint32_t size_;
@@ -1100,11 +1102,11 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
-    //--
+    //-- 
   }
 
   bool empty() const {
@@ -1298,7 +1300,7 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
@@ -1414,7 +1416,7 @@ public:
   }
 
   void reset() {
-    //--
+    //-- 
   }
 
   void tick() {
@@ -1625,3 +1627,4 @@ using MemArbiter  = TxRxArbiter<MemReq, MemRsp>;
 using MemCrossBar = TxRxCrossBar<MemReq, MemRsp>;
 
 }
+

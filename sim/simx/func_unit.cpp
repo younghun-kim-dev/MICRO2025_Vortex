@@ -51,6 +51,7 @@ void AluUnit::tick() {
 			case AluType::AND:
 			case AluType::OR:
 			case AluType::CZERO:
+			case AluType::DOT8:   // <-- DOT8: 2-cycle latency
 				delay = 2;
 				break;
 			default:
@@ -442,3 +443,4 @@ void TcuUnit::tick() {
 	// use tensor_unit
 }
 #endif
+

@@ -300,6 +300,31 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           rd_data[t].i = cond ? 0 : rs1_data[t].i;
         }
       } break;
+      case AluType::DOT8: { // DOT8
+        for (uint32_t t = thread_start; t < num_threads; ++t) {
+          if (!warp.tmask.test(t))
+            continue;
+          // packed 4x int8 lanes in low 32 bits of rs1/rs2
+          uint32_t packedA = static_cast<uint32_t>(rs1_data[t].u);
+          uint32_t packedB = static_cast<uint32_t>(rs2_data[t].u);
+          int8_t a0 = static_cast<int8_t>( packedA        & 0xFF);
+          int8_t a1 = static_cast<int8_t>((packedA >> 8)  & 0xFF);
+          int8_t a2 = static_cast<int8_t>((packedA >> 16) & 0xFF);
+          int8_t a3 = static_cast<int8_t>((packedA >> 24) & 0xFF);
+          int8_t b0 = static_cast<int8_t>( packedB        & 0xFF);
+          int8_t b1 = static_cast<int8_t>((packedB >> 8)  & 0xFF);
+          int8_t b2 = static_cast<int8_t>((packedB >> 16) & 0xFF);
+          int8_t b3 = static_cast<int8_t>((packedB >> 24) & 0xFF);
+          int32_t sum = static_cast<int32_t>(a0) * static_cast<int32_t>(b0)
+                      + static_cast<int32_t>(a1) * static_cast<int32_t>(b1)
+                      + static_cast<int32_t>(a2) * static_cast<int32_t>(b2)
+                      + static_cast<int32_t>(a3) * static_cast<int32_t>(b3);
+          DP(3, "*** DOT8[" << t << "]: a=0x" << std::hex << packedA
+                            << ", b=0x" << packedB
+                            << ", c=0x" << sum << std::dec);
+          rd_data[t].i = sum; // sign-extend to XLEN by assignment
+        }
+      } break;
       default:
         std::abort();
       }
@@ -1276,7 +1301,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
             continue;
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
-          this->set_csr(csr_addr, src_data, t, wid);
+          this->set_csr(csr_addr, src_data, wid, t);
           rd_data[t].i = csr_value;
         }
       } break;
@@ -1287,7 +1312,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
           if (src_data != 0) {
-            this->set_csr(csr_addr, csr_value | src_data, t, wid);
+            this->set_csr(csr_addr, csr_value | src_data, wid, t);
           }
           rd_data[t].i = csr_value;
         }
@@ -1299,7 +1324,7 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
           Word csr_value = this->get_csr(csr_addr, wid, t);
           auto src_data = csrArgs.is_imm ? csrArgs.imm : rs1_data[t].i;
           if (src_data != 0) {
-            this->set_csr(csr_addr, csr_value & ~src_data, t, wid);
+            this->set_csr(csr_addr, csr_value & ~src_data, wid, t);
           }
           rd_data[t].i = csr_value;
         }
@@ -1561,3 +1586,4 @@ instr_trace_t* Emulator::execute(const Instr &instr, uint32_t wid) {
 
   return trace;
 }
+

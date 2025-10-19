@@ -109,7 +109,7 @@ inline void vx_tmc_zero() {
 // switch execution to single thread0
 inline void vx_tmc_one() {
     __asm__ volatile (
-        "li a0, 1\n\t"  // Load immediate value 1 into a0 (x10) register
+        "li a0, 1\n\t"
         ".insn r %0, 0, 0, x0, a0, x0" :: "i"(RISCV_CUSTOM0) : "a0"
     );
 }
@@ -281,8 +281,23 @@ inline __attribute__((const)) int vx_shfl_idx(size_t value, int bval, int cval, 
     return ret;
 }
 
+/*** -----------------------------------------------------------------------
+ *  DOT8: int8x4 • int8x4 → int32
+ *  - opcode = RISCV_CUSTOM0 (0x0B), funct3 = 0, funct7 = 3
+ *  - R-type encoding order: .insn r opcode, funct3, funct7, rd, rs1, rs2
+ *  - Each of a,b packs four int8 elements: [A1|A2|A3|A4] in byte lanes 0..3
+ *----------------------------------------------------------------------- ***/
+inline __attribute__((const)) int vx_dot8(int a, int b) {
+    int ret;
+    __asm__ volatile (".insn r %1, 0, 3, %0, %2, %3"
+                      : "=r"(ret)
+                      : "i"(RISCV_CUSTOM0), "r"(a), "r"(b));
+    return ret;
+}
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif // __VX_INTRINSICS_H__
+
